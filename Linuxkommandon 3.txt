@@ -1,0 +1,117 @@
+
+Information om Linux GPIO (lägg på minnet)
+-------------------------------------------------------------------------------------
+En GPIO-linje motsvarar en PIN.
+Ett GPIO-chip är en uppsättning av GPIO-linjer / PINs.
+gpiochip0 innehåller samtliga GPIO-linjer på Raspberry Pi.
+-------------------------------------------------------------------------------------
+
+Interface för GPIO-implementering i Linux:
+-------------------------------------------------------------------------------------
+Det finns två interface för GPIO-implementering i Linux, det moderna biblioteket
+libgpiod samt det äldre virtuella filsystemet sysfs. Nedan demonstreras båda
+interface via Linuxkommandon, som kan skrivas direkt i terminalen.
+-------------------------------------------------------------------------------------
+
+libgpiod - Linux officiella interface för GPIO-implementering, skrivet i C.
+Biblioteket är primärt tänkt att användas i C, men det finns enkla Linuxkommandon
+för att demonstrera libgpiod, som visas nedan.
+
+Tänder LED ansluten till PIN 17:
+-------------------------------------------------------------------------------------
+$ gpioset 0 17=1
+-------------------------------------------------------------------------------------
+
+vilket betyder "Sätt hög utsignal på gpiochip0, GPIO-linje 17".
+Nollan ovan kan därmed ersättas med gpiochip0, men 0 skrivs ofta då det är kortare.
+
+Ovanstående kommando kan därmed även skrivas enligt nedan:
+-------------------------------------------------------------------------------------
+$ gpioset gpiochip0 17=1
+-------------------------------------------------------------------------------------
+
+Tänder LED på PIN 17 och håll tänd i 1 sekund:
+-------------------------------------------------------------------------------------
+$gpioset --mode=time -s 1 0 17=1
+-------------------------------------------------------------------------------------
+
+Flaggan -s betyder sekunder, talet vi skriver är antalet sekunder (måste vara ett heltal).
+Det går också att ange tiden i mikrosekunder via flaggan -u
+Tyvärr går det inte att ange tiden i millisekunder, så tiden får anges i mikrosekunder.
+
+Tänder en lysdiod ansluten till PIN 17 och håller tänd i 50 ms (50 000 us):
+-------------------------------------------------------------------------------------
+$gpioset --mode=time -u 50000 0 17=1
+-------------------------------------------------------------------------------------
+
+För att kontinuerligt blinka en lysdiod var 50:e ms kan en while-sats användas:
+-------------------------------------------------------------------------------------
+$ while true
+$ do
+$   gpioset --mode=time -u 50000 0 17=1
+$   gpioset --mode=time -u 50000 0 17=0
+$ done
+-------------------------------------------------------------------------------------
+
+Insignaler kan läsas av via kommandot gpioget. Som exempel, för att läsa av insignalen från en tryckknapp 
+ansluten till PIN 27 och skriva ut i terminalen så kan följande kommando användas.
+-------------------------------------------------------------------------------------
+gpioget 0 27
+-------------------------------------------------------------------------------------
+
+sysfs - Äldre interface som tidigare utgjorde Linux officiella interface för GPIO. 
+sysfs är numera ersatt av biblioteket libgpiod, som presenterades ovan. 
+sysfs används dock fortfarande i många äldre system och är därmed viktigt att känna till.
+
+GPIO-implementering sker genom skrivning samt läsning till filer.
+Filsökvägen för alla filer börjar på /sys/class/gpio. 
+Filskrivning kan ske direkt via kommandot echo, som medför utskrift / skrivning till fil.
+
+Antag att en lysdiod är ansluten till PIN 17.
+
+1. Reservera PIN 17 för aktuell process:
+-------------------------------------------------------------------------------------
+$ echo 17 > /sys/class/gpio/export
+-------------------------------------------------------------------------------------
+
+2. Sätt PIN 17 till utport:
+-------------------------------------------------------------------------------------
+$ echo out > /sys/class/gpio/gpio17/direction
+-------------------------------------------------------------------------------------
+
+3. Tänder lysdioden (hög utsignal på PIN 17):
+-------------------------------------------------------------------------------------
+$ echo 1 > /sys/class/gpio/gpio17/value
+-------------------------------------------------------------------------------------
+
+4. Släcker lysdioden (låg utsignal på PIN 17):
+-------------------------------------------------------------------------------------
+$ echo 0 > /sys/class/gpio/gpio17/value
+-------------------------------------------------------------------------------------
+
+5. Tar bort reservation för PIN 17 när den inte längre behövs:
+-------------------------------------------------------------------------------------
+$ echo 17 > /sys/class/gpio/unexport
+-------------------------------------------------------------------------------------
+
+Antag att en tryckknapp är ansluten till PIN 27.
+
+1. Reservera PIN 27 för aktuell process:
+-------------------------------------------------------------------------------------
+$ echo 27 > /sys/class/gpio/export
+-------------------------------------------------------------------------------------
+
+1. Sätt PIN 27 till inport:
+-------------------------------------------------------------------------------------
+$ echo in > /sys/class/gpio/gpio27/direction
+-------------------------------------------------------------------------------------
+
+3. Läser av insignalen från tryckknappen (skrivs ut i terminalen som 0 eller 1):
+-------------------------------------------------------------------------------------
+$ cat /sys/class/gpio/gpio27/value
+-------------------------------------------------------------------------------------
+
+4. Tar bort reservation för PIN 27 när den inte längre behövs:
+-------------------------------------------------------------------------------------
+$ echo 27 > /sys/class/gpio/unexport
+-------------------------------------------------------------------------------------
